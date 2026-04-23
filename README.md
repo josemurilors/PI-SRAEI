@@ -128,61 +128,65 @@ Configurar o monitor serial para **115200 baud**.
 
 ## Dashboard Web
 
-O projeto inclui um dashboard web em `web/index.html` que simula o comportamento do firmware em tempo real no navegador, sem necessidade de hardware físico.
+O projeto conta com um backend em **Flask + SQLite** que simula o comportamento do firmware ESP32, servindo os dados via API REST para um frontend web simplificado.
 
-### Funcionalidades
+### Arquitetura
 
-- Indicadores em tempo real de **corrente RMS**, **potência**, **energia acumulada** e **custo estimado**
-- Gráfico de linha com histórico das últimas 60 leituras (corrente e potência)
-- Gráfico de rosca com percentual de uso da capacidade máxima do sensor
-- Log serial simulado (replica a saída do `Serial.print` do firmware)
-- Controles interativos: pausar/retomar, zerar energia, alterar tensão da rede (127V / 220V) e intervalo de leitura
+```
+[ESP32 / Simulação Python] → [Flask API] → [SQLite] → [Frontend Web]
+```
+
+A simulação da função `lerCorrenteRMS()` roda em um thread em background no Flask, lendo/gerando dados idênticos ao firmware e armazenando leituras no SQLite.
+
+### Funcionalidades do Site (Simplificado)
+
+- Indicadores em tempo real: **Corrente RMS**, **Potência**, **Energia Acumulada**, **Custo Estimado**
+- Gráfico de linha com histórico das últimas 50 leituras de corrente
+- Controles: pausar/retomar, zerar energia, alterar tensão da rede (127V/220V), intervalo de leitura
+- **Campo para alterar o valor do kWh** (preço da energia em R$)
+
+> Seções removidas no layout simplificado: Log Serial, Distribuição de Potência, Hardware, Fórmulas, Projeto, Objetivos do Projeto, Exploratórios, Descritivos, Explicativos.
 
 ### Como rodar
 
-Não requer instalação de dependências. Basta abrir o arquivo diretamente no navegador:
+#### 1. Backend (Flask + SQLite)
 
-**Opção 1 — Abrir direto (mais simples):**
+Pré-requisitos: Python 3.7+
 
 ```bash
-# Windows
-start web/index.html
+cd backend
 
-# macOS
-open web/index.html
+# Instalar dependências
+pip install flask
 
-# Linux
-xdg-open web/index.html
+# Rodar a aplicação
+python app.py
 ```
 
-**Opção 2 — Servidor local (recomendado para desenvolvimento):**
+O backend ficará disponível em `http://localhost:5000`.
 
-Com Python:
-```bash
-# Python 3
-python -m http.server 8080 --directory web
+#### 2. Frontend
 
-# Acesse: http://localhost:8080
+Com o backend rodando, acesse no navegador:
+
+```
+http://localhost:5000
 ```
 
-Com Node.js (`npx`):
-```bash
-npx serve web
-
-# Acesse: http://localhost:3000
-```
-
-Com VS Code: instale a extensão **Live Server**, clique com o botão direito em `web/index.html` e selecione **Open with Live Server**.
+> O Flask serve o template `backend/templates/simple_index.html` automaticamente.
 
 ### Tecnologias
 
 | Tecnologia | Uso |
 |---|---|
-| HTML5 / CSS3 | Estrutura e estilo do dashboard |
-| JavaScript (ES6+) | Lógica de simulação e atualização em tempo real |
-| [Chart.js](https://www.chartjs.org/) (CDN) | Gráficos de linha e rosca |
+| Python 3 | Lógica de simulação e API backend |
+| Flask | Framework web leve para servir API e templates |
+| SQLite | Armazenamento local das leituras (últimas 200) |
+| HTML5 / CSS3 | Estrutura e estilo do dashboard (tema dark) |
+| JavaScript (ES6+) | Consumo da API e atualização em tempo real |
+| [Chart.js](https://www.chartjs.org/) (CDN) | Gráfico de linha histórico |
 
-> A simulação replica fielmente a função `lerCorrenteRMS()` do firmware: corrente senoidal entre ~2A e ~14A com período de 20s, cálculo de potência (`I × V_rede`) e acúmulo de energia em kWh.
+> A simulação no Python replica a função `lerCorrenteRMS()`: corrente senoidal entre ~2A e ~14A com período de 20s, cálculo de potência (`I × V_rede`) e acúmulo de energia em kWh.
 
 ---
 
@@ -193,8 +197,13 @@ PI-SRAEI/
 ├── arduino/
 │   ├── leitorcorrente-esp32.ino       # Firmware principal (ESP32)
 │   └── Arduino-Sensor-SCT-013-000.ino # Versão legada (descontinuada)
+├── backend/
+│   ├── app.py                         # Flask app + simulação + SQLite
+│   ├── sraei.db                       # Banco SQLite (criado automaticamente)
+│   └── templates/
+│       └── simple_index.html           # Dashboard web simplificado
 ├── web/
-│   └── index.html                     # Dashboard web
+│   └── index.html                     # Dashboard web completo (versão anterior)
 └── README.md
 ```
 
@@ -202,12 +211,17 @@ PI-SRAEI/
 
 ## Dependências
 
-### Firmware
+### Firmware (ESP32)
 - [Arduino ESP32 Core](https://github.com/espressif/arduino-esp32)
 - Biblioteca padrão `Arduino.h`
 
-### Web
-- [Chart.js](https://www.chartjs.org/) — carregado via CDN, sem instalação necessária
+### Backend
+```bash
+pip install flask
+```
+
+### Frontend
+- [Chart.js](https://www.chartjs.org/) — carregado via CDN
 
 ---
 
