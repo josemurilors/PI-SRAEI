@@ -121,8 +121,168 @@ Configurar o monitor serial para **115200 baud**.
 
 | Arquivo | Status | Descrição |
 |---|---|---|
-| `arduino/leitorcorrente-esp32.ino` | Ativo | Firmware principal para ESP32 |
+| `arduino/leitorcorrente-esp32.ino` | Ativo | Firmware principal para ESP32 (Serial) |
+| `arduino/leitorcorrente-esp32-wifi.ino` | Ativo | Firmware ESP32 com WiFi + HTTP para backend |
 | `arduino/Arduino-Sensor-SCT-013-000.ino` | **Descontinuado** | Versão legada para Arduino (ADC 10 bits, 5V) |
+
+---
+
+## Conexão do ESP32 ao Backend (IoT)
+
+Após montar o circuito do sensor SCT-013-000 com o ESP32, siga os passos abaixo para conectar ao backend Flask.
+
+### 1. Circuito: SCT-013-000 → ESP32
+
+```
+SCT-013-000 (Sensor de Corrente)
+├── Fio S (sinal) ──→ Burden Resistor (33Ω) ──→ ESP32 GPIO34 (ADC1_CH6)
+├── Fio S (sinal) ──→ Burden Resistor (33Ω) ──→ Divisor de Tensão (2×10kΩ) ──→ GND
+└── Fio S (sinal) ──→ Burden Resistor (33Ω) ──→ Divisor de Tensão (2×10kΩ) ──→ 3.3V
+
+Alimentação:
+- VCC do ESP32 → 3.3V
+- GND do ESP32 → GND comum
+```
+
+> **Nota:** O divisor de tensão (2 resistores de 10kΩ em série) cria um bias de 1.65V (metade de 3.3V), necessário para leitura de sinais AC.
+
+### 2. Configurar o Firmware WiFi
+
+Edite o arquivo `arduino/leitorcorrente-esp32-wifi.ino` e altere:
+
+```cpp
+const char* SSID     = "SEU_WIFI";      // Nome da sua rede WiFi
+const char* PASSWORD = "SUA_SENHA";     // Senha do WiFi
+
+const char* SERVER_URL = "http://192.168.1.XXX:5000/api/esp32";  // IP do computador + porta do Flask
+```
+
+Para descobrir o IP do computador rodando o Flask:
+- **Windows:** `ipconfig` → procure "IPv4 Address"
+- **Linux/macOS:** `ifconfig` ou `ip addr`
+
+### 3. Upload do Firmware
+
+1. Abra `leitorcorrente-esp32-wifi.ino` no Arduino IDE
+2. Selecione a placa: **ESP32 Dev Module**
+3. Selecione a porta COM correta
+4. Clique em **Upload**
+
+### 4. Rodar o Backend Flask
+
+```bash
+cd backend
+pip install flask
+python app.py
+```
+
+O backend ficará disponível em `http://SEU_IP:5000`.
+
+### 5. Monitorar a Conexão
+
+#### No ESP32 (Serial Monitor - 115200 baud):
+```
+Conectando ao WiFi SEU_WIFI
+WiFi conectado!
+IP do ESP32: 192.168.1.YYY
+Iniciando monitoramento...
+
+Tempo(s): 1 | Corrente: 8.000 A | Potencia: 1016.00 W | Energia: 0.000282 kWh
+Dados enviados com sucesso!
+```
+
+#### No Terminal do Flask:
+```
+ * Running on http://0.0.0.0:5000
+POST /api/esp32 - 200 OK
+```
+
+#### No Dashboard Web (`http://SEU_IP:5000`):
+O site exibirá automaticamente os dados reais do ESP32 (sem simulação).
+
+### 6. Funcionamento
+
+```
+[SCT-013-000] → [ESP32 GPIO34] → [lerCorrenteRMS()] → [WiFi HTTP POST] → [Flask /api/esp32]
+                                                                          ↓
+                                                                     [SQLite]
+                                                                          ↓
+                                                                  [Dashboard Web]
+```
+
+O backend detecta automaticamente se há dados do ESP32 no banco. Se houver, exibe dados reais; senão, usa simulação Python.
+
+---
+
+## Dashboard Web
+
+O projeto conta com um backend em **Flask + SQLite** que recebe dados do ESP32 via WiFi, servindo os dados via API REST para um frontend web simplificado.
+
+### Arquitetura
+
+```
+[ESP32 + SCT-013-000] ──WiFi──→ [Flask API /api/esp32] → [SQLite] → [Frontend Web]
+                                      ↑
+                              (simulação Python se sem ESP32)
+```
+
+O ESP32 envia os dados via HTTP POST para o endpoint `/api/esp32`. O backend armazena no SQLite e o frontend consome via `/api/data`.
+
+### Funcionalidades do Site (Simplificado)
+
+- Indicadores em tempo real: **Corrente RMS**, **Potência**, **Energia Acumulada**, **Custo Estimado**
+- Gráfico de linha com histórico das últimas 50 leituras de corrente
+- Controles: pausar/retomar, zerar energia, alterar tensão da rede (127V/220V), intervalo de leitura
+- **Campo para alterar o valor do kWh** (preço da energia em R$)
+
+> Seções removidas no layout simplificado: Log Serial, Distribuição de Potência, Hardware, Fórmulas, Projeto, Objetivos do Projeto, Exploratórios, Descritivos, Explicativos.
+
+### Como rodar
+
+#### 1. Backend (Flask + SQLite)
+
+Pré-requisitos: Python 3.7+
+
+```bash
+cd backend
+
+# Instalar dependências
+pip install flask
+
+# Rodar a aplicação
+python app.py
+```
+
+O backend ficará disponível em `http://localhost:5000` (ou IP da máquina na rede).
+
+#### 2. Frontend
+
+Com o backend rodando, acesse no navegador:
+
+```
+http://localhost:5000
+```
+
+> O Flask serve o template `backend/templates/simple_index.html` automaticamente.
+
+#### 3. (Opcional) Simulação sem ESP32
+
+Se não tiver o hardware montado, o backend usa simulação Python automaticamente. Basta rodar o Flask e acessar o site.
+
+### Tecnologias
+
+| Tecnologia | Uso |
+|---|---|
+| ESP32 + WiFi | Coleta de dados e envio via HTTP |
+| SCT-013-000 | Sensor de corrente não invasivo (100A) |
+| Python 3 | Lógica de simulação (fallback) e API backend |
+| Flask | Framework web leve para servir API e templates |
+| SQLite | Armazenamento local das leituras (últimas 200) |
+| HTML5 / CSS3 | Estrutura e estilo do dashboard (tema dark) |
+| JavaScript (ES6+) | Consumo da API e atualização em tempo real |
+| [Chart.js](https://www.chartjs.org/) (CDN) | Gráfico de linha histórico |
+
+> A simulação no Python replica a função `lerCorrenteRMS()`: corrente senoidal entre ~2A e ~14A com período de 20s, cálculo de potência (`I × V_rede`) e acúmulo de energia em kWh.
 
 ---
 

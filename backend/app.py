@@ -100,19 +100,38 @@ def index():
 
 @app.route('/api/data')
 def api_data():
-    with lock:
-        corrente = simulate_current_rms(time.time() - t_start)
-        tensao_rede = 127.0
-        potencia = corrente * tensao_rede
-        energia = energia_kwh
+    # Se o ESP32 estiver enviando dados, usa dados reais do banco
+    # Caso contrário, usa simulação Python
+    db = sqlite3.connect(DATABASE)
+    last_reading = db.execute("""
+        SELECT corrente, potencia, energia FROM readings
+        ORDER BY id DESC LIMIT 1
+    """).fetchone()
+    db.close()
+
+    if last_reading:
+        # Dados reais do ESP32
+        corrente = last_reading[0]
+        potencia = last_reading[1]
+        energia = last_reading[2]
+    else:
+        # Simulação Python
+        with lock:
+            corrente = simulate_current_rms(time.time() - t_start)
+            potencia = corrente * 127.0
+            energia = energia_kwh
+
     price = get_price_per_kwh()
     custo = energia * price
+
+    # Busca histórico para o gráfico
     db = sqlite3.connect(DATABASE)
     rows = db.execute("""
         SELECT timestamp, corrente FROM readings
         ORDER BY timestamp DESC LIMIT 50
     """).fetchall()
     db.close()
+
     timestamps = [r[0] for r in reversed(rows)]
     correntes = [r[1] for r in reversed(rows)]
     if timestamps:
@@ -130,6 +149,38 @@ def api_data():
         'chart_labels': labels,
         'chart_data': correntes
     })
+
+@app.route('/api/esp32', methods=['POST'])
+def api_esp32():
+    """Recebe dados do ESP32 via HTTP POST"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data received'}), 400
+
+    corrente = data.get('corrente')
+    potencia = data.get('potencia')
+    energia = data.get('energia')
+
+    if corrente is None or potencia is None or energia is None:
+        return jsonify({'error': 'Missing fields'}), 400
+
+    # Salva no banco
+    db = sqlite3.connect(DATABASE)
+    db.execute("""
+        INSERT INTO readings (timestamp, corrente, potencia, energia)
+        VALUES (?, ?, ?, ?)
+    """, (time.time(), corrente, potencia, energia))
+
+    # Mantém apenas últimas 200 leituras
+    db.execute("""
+        DELETE FROM readings WHERE id NOT IN (
+            SELECT id FROM readings ORDER BY id DESC LIMIT 200
+        )
+    """)
+    db.commit()
+    db.close()
+
+    return jsonify({'success': True})
 
 @app.route('/api/price', methods=['POST'])
 def api_price():
