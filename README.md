@@ -126,10 +126,88 @@ Configurar o monitor serial para **115200 baud**.
 
 ---
 
+## Dashboard Web
+
+O projeto inclui um dashboard web em `web/index.html` que simula o comportamento do firmware em tempo real no navegador, sem necessidade de hardware físico.
+
+### Funcionalidades
+
+- Indicadores em tempo real de **corrente RMS**, **potência**, **energia acumulada** e **custo estimado**
+- Gráfico de linha com histórico das últimas 60 leituras (corrente e potência)
+- Gráfico de rosca com percentual de uso da capacidade máxima do sensor
+- Log serial simulado (replica a saída do `Serial.print` do firmware)
+- Controles interativos: pausar/retomar, zerar energia, alterar tensão da rede (127V / 220V) e intervalo de leitura
+
+### Como rodar
+
+Não requer instalação de dependências. Basta abrir o arquivo diretamente no navegador:
+
+**Opção 1 — Abrir direto (mais simples):**
+
+```bash
+# Windows
+start web/index.html
+
+# macOS
+open web/index.html
+
+# Linux
+xdg-open web/index.html
+```
+
+**Opção 2 — Servidor local (recomendado para desenvolvimento):**
+
+Com Python:
+```bash
+# Python 3
+python -m http.server 8080 --directory web
+
+# Acesse: http://localhost:8080
+```
+
+Com Node.js (`npx`):
+```bash
+npx serve web
+
+# Acesse: http://localhost:3000
+```
+
+Com VS Code: instale a extensão **Live Server**, clique com o botão direito em `web/index.html` e selecione **Open with Live Server**.
+
+### Tecnologias
+
+| Tecnologia | Uso |
+|---|---|
+| HTML5 / CSS3 | Estrutura e estilo do dashboard |
+| JavaScript (ES6+) | Lógica de simulação e atualização em tempo real |
+| [Chart.js](https://www.chartjs.org/) (CDN) | Gráficos de linha e rosca |
+
+> A simulação replica fielmente a função `lerCorrenteRMS()` do firmware: corrente senoidal entre ~2A e ~14A com período de 20s, cálculo de potência (`I × V_rede`) e acúmulo de energia em kWh.
+
+---
+
+## Estrutura do Projeto
+
+```
+PI-SRAEI/
+├── arduino/
+│   ├── leitorcorrente-esp32.ino       # Firmware principal (ESP32)
+│   └── Arduino-Sensor-SCT-013-000.ino # Versão legada (descontinuada)
+├── web/
+│   └── index.html                     # Dashboard web
+└── README.md
+```
+
+---
+
 ## Dependências
 
+### Firmware
 - [Arduino ESP32 Core](https://github.com/espressif/arduino-esp32)
 - Biblioteca padrão `Arduino.h`
+
+### Web
+- [Chart.js](https://www.chartjs.org/) — carregado via CDN, sem instalação necessária
 
 ---
 

@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRAEI — Sistema Residencial de Análise Energética Inteligente</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3e;
+      --accent:    #4f8ef7;
+      --accent2:   #f7c94f;
+      --accent3:   #4ff7a0;
+      --danger:    #f7604f;
+      --text:      #e2e8f0;
+      --muted:     #8892a4;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header .brand { display: flex; align-items: center; gap: 12px; }
+    header .brand svg { width: 36px; height: 36px; }
+    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
+    header p  { font-size: .75rem; color: var(--muted); }
+    .badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: .5px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent3);
+      box-shadow: 0 0 6px var(--accent3);
+      animation: pulse 1.5s infinite;
+      margin-right: 6px;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .3; }
+    }
+
+    /* ── Layout ── */
+    main { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+
+    /* ── KPI Cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+      border-radius: var(--radius) 0 0 var(--radius);
+    }
+    .kpi.blue::before   { background: var(--accent); }
+    .kpi.yellow::before { background: var(--accent2); }
+    .kpi.green::before  { background: var(--accent3); }
+    .kpi.red::before    { background: var(--danger); }
+
+    .kpi label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+    .kpi .value {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin: 6px 0 2px;
+    }
+    .kpi.blue   .value { color: var(--accent); }
+    .kpi.yellow .value { color: var(--accent2); }
+    .kpi.green  .value { color: var(--accent3); }
+    .kpi.red    .value { color: var(--danger); }
+    .kpi .unit  { font-size: .8rem; color: var(--muted); }
+
+    /* ── Charts ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 860px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .card h2 {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 16px;
+    }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ── Info section ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .info-card h3 {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .info-card ul { list-style: none; }
+    .info-card ul li {
+      font-size: .82rem;
+      color: var(--muted);
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .info-card ul li:last-child { border-bottom: none; }
+    .info-card ul li span { color: var(--text); font-weight: 600; text-align: right; }
+
+    .info-card p {
+      font-size: .82rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .info-card p:last-child { margin-bottom: 0; }
+
+    /* ── Objectives ── */
+    .obj-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .obj-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .obj-card h3 {
+      font-size: .82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .obj-card.exploratorio h3 { color: var(--accent); }
+    .obj-card.descritivo   h3 { color: var(--accent2); }
+    .obj-card.explicativo  h3 { color: var(--accent3); }
+
+    .obj-card ul { list-style: none; }
+    .obj-card ul li {
+      font-size: .8rem;
+      color: var(--muted);
+      padding: 5px 0 5px 14px;
+      position: relative;
+      line-height: 1.5;
+      border-bottom: 1px solid var(--border);
+    }
+    .obj-card ul li:last-child { border-bottom: none; }
+    .obj-card ul li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+    }
+    .obj-card.exploratorio ul li::before { color: var(--accent); }
+    .obj-card.descritivo   ul li::before { color: var(--accent2); }
+    .obj-card.explicativo  ul li::before { color: var(--accent3); }
+
+    /* ── Log ── */
+    .log-box {
+      background: #0a0c12;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: .78rem;
+      color: var(--accent3);
+      height: 160px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .log-box .ts { color: var(--muted); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: .75rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: .82rem;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+    }
+    .btn:hover { background: var(--border); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { opacity: .85; }
+    .btn.danger  { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .btn.danger:hover { opacity: .85; }
+
+    select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: .82rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="17" stroke="#4f8ef7" stroke-width="2"/>
+      <path d="M18 8 L14 20 H18 L16 28 L24 16 H19 L22 8 Z" fill="#4f8ef7"/>
+    </svg>
+    <div>
+      <h1>SRAEI — Sistema Residencial de Análise Energética Inteligente</h1>
+      <p><span class="status-dot"></span>Monitoramento em tempo real &nbsp;|&nbsp; UNIVESP — Grupo 14 &nbsp;|&nbsp; DRP04-PI em Computação V</p>
+    </div>
+  </div>
+  <span class="badge">ESP32 · SCT-013-000</span>
+</header>
+
+<main>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn primary" id="btnToggle">Pausar</button>
+    <button class="btn danger"  id="btnReset">Zerar Energia</button>
+    <label style="font-size:.82rem;color:var(--muted)">Tensão da rede:</label>
+    <select id="selTensao">
+      <option value="127">127 V</option>
+      <option value="220">220 V</option>
+    </select>
+    <label style="font-size:.82rem;color:var(--muted)">Intervalo:</label>
+    <select id="selIntervalo">
+      <option value="1000">1 s</option>
+      <option value="500">0.5 s</option>
+      <option value="2000">2 s</option>
+    </select>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi blue">
+      <label>Corrente RMS</label>
+      <div class="value" id="kpiCorrente">—</div>
+      <div class="unit">Ampères (A)</div>
+    </div>
+    <div class="kpi yellow">
+      <label>Potência</label>
+      <div class="value" id="kpiPotencia">—</div>
+      <div class="unit">Watts (W)</div>
+    </div>
+    <div class="kpi green">
+      <label>Energia Acumulada</label>
+      <div class="value" id="kpiEnergia">—</div>
+      <div class="unit">kWh</div>
+    </div>
+    <div class="kpi red">
+      <label>Custo Estimado</label>
+      <div class="value" id="kpiCusto">—</div>
+      <div class="unit">R$ (R$ 0,85/kWh)</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="card">
+      <h2>Corrente &amp; Potência — histórico (últimas 60 leituras)</h2>
+      <div class="chart-wrap">
+        <canvas id="chartLine"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Distribuição de potência</h2>
+      <div class="chart-wrap">
+        <canvas id="chartDoughnut"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log serial -->
+  <div class="card" style="margin-bottom:28px">
+    <h2>Log Serial (simulado)</h2>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <!-- Info cards -->
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Hardware</h3>
+      <ul>
+        <li>Microcontrolador <span>ESP32</span></li>
+        <li>Sensor de corrente <span>SCT-013-000 (100A)</span></li>
+        <li>Pino ADC <span>GPIO34 (ADC1_CH6)</span></li>
+        <li>Tensão de referência <span>3.3 V</span></li>
+        <li>Resolução ADC <span>12 bits (0–4095)</span></li>
+        <li>Resistor burden <span>33 Ω</span></li>
+        <li>Relação de espiras <span>2000 (100A / 0.05A)</span></li>
+        <li>Baudrate Serial <span>115200</span></li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Fórmulas</h3>
+      <ul>
+        <li>Tensão ADC <span>leitura / 4095 × 3.3V</span></li>
+        <li>Tensão sensor <span>V_adc − 1.65V</span></li>
+        <li>I secundário <span>V_sens / 33Ω</span></li>
+        <li>I primário <span>I_sec × 2000</span></li>
+        <li>Potência <span>I_rms × V_rede</span></li>
+        <li>Energia <span>P × Δt / 1000 (kWh)</span></li>
+        <li>Filtro ruído <span>I &lt; 0.3A → 0</span></li>
+        <li>Amostras/leitura <span>1000</span></li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Projeto</h3>
+      <p><strong>Disciplina:</strong> DRP04 — Projeto Integrador em Computação V</p>
+      <p><strong>Tema:</strong> Sistema de monitoramento de consumo energético residencial em tempo real e processamento de dados.</p>
+      <p><strong>Problema:</strong> Consumo energético não consciente.</p>
+      <p><strong>Polos:</strong> Hortolândia, Jaguariúna</p>
+      <p><strong>Orientador:</strong> Lineia Soares da Silva</p>
+      <p><strong>Integrantes:</strong><br>
+        José Murilo Rodrigues Sabalo — 2232083<br>
+        Joseph Jucelio de Oliveira Santos — 2224541
+      </p>
+    </div>
+  </div>
+
+  <!-- Objectives -->
+  <div class="card" style="margin-bottom:28px">
+    <h2>Objetivos do Projeto</h2>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">
+      Implementar um sistema de telemetria IoT capaz de coletar e processar dados de energia em tempo real para auxiliar no gerenciamento energético residencial.
+    </p>
+  </div>
+  <div class="obj-grid">
+    <div class="obj-card exploratorio">
+      <h3>Exploratórios</h3>
+      <ul>
+        <li>Conhecer os hábitos de consumo energético em residências da comunidade participante.</li>
+        <li>Identificar os principais equipamentos responsáveis pelo maior consumo de energia elétrica.</li>
+        <li>Levantar as necessidades e expectativas dos moradores em relação ao uso de energia e ao sistema proposto.</li>
+        <li>Descobrir oportunidades de aplicação prática da IoT no contexto doméstico para eficiência energética.</li>
+      </ul>
+    </div>
+    <div class="obj-card descritivo">
+      <h3>Descritivos</h3>
+      <ul>
+        <li>Caracterizar o ambiente residencial e os padrões de uso de energia ao longo do dia.</li>
+        <li>Descrever o funcionamento do sistema IoT desenvolvido, incluindo sensores, coleta e transmissão de dados.</li>
+        <li>Traçar o perfil de consumo energético da residência participante, com base nos dados coletados.</li>
+        <li>Determinar os parâmetros técnicos necessários para a implementação do sistema de monitoramento.</li>
+      </ul>
+    </div>
+    <div class="obj-card explicativo">
+      <h3>Explicativos</h3>
+      <ul>
+        <li>Analisar os dados coletados em tempo real para compreender os padrões de consumo energético.</li>
+        <li>Avaliar a eficácia do sistema IoT em promover maior conscientização sobre o uso da energia elétrica.</li>
+        <li>Verificar a viabilidade técnica e social da solução proposta no ambiente residencial.</li>
+        <li>Explicar como o monitoramento contínuo pode contribuir para a redução de custos e para práticas mais sustentáveis.</li>
+      </ul>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  SRAEI &mdash; UNIVESP Grupo 14 &mdash; DRP04 Projeto Integrador em Computação V &mdash; Simulação baseada no firmware <code>leitorcorrente-esp32.ino</code>
+</footer>
+
+<script>
+  // ── Parâmetros do firmware (espelha leitorcorrente-esp32.ino) ──
+  const TENSAO_REFERENCIA  = 3.3;
+  const RESOLUCAO_ADC      = 4095;
+  const RESISTOR_BURDEN    = 33.0;
+  const RELACAO_ESPIRAS    = 2000.0;
+  const OFFSET_ADC         = TENSAO_REFERENCIA / 2.0;  // 1.65V
+  const TARIFA_KWH         = 0.85; // R$/kWh
+
+  let tensaoRede    = 127.0;
+  let intervalo     = 1000;
+  let energiaKwh    = 0.0;
+  let tempoInicio   = Date.now();
+  let running       = true;
+  let timer         = null;
+
+  const MAX_PONTOS  = 60;
+  const labels      = [];
+  const dadosCorrente = [];
+  const dadosPotencia = [];
+
+  // ── Simulação (replica a lógica do firmware) ──
+  function lerCorrenteRMS() {
+    const t = (Date.now() - tempoInicio) / 1000.0;
+    let corrente = 8.0 + 6.0 * Math.sin(2.0 * Math.PI * 0.05 * t);
+    if (corrente < 0) corrente = 0;
+    return corrente;
+  }
+
+  // ── Chart.js — linha ──
+  const ctxLine = document.getElementById('chartLine').getContext('2d');
+  const chartLine = new Chart(ctxLine, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Corrente (A)',
+          data: dadosCorrente,
+          borderColor: '#4f8ef7',
+          backgroundColor: 'rgba(79,142,247,.08)',
+          tension: .4,
+          pointRadius: 2,
+          yAxisID: 'yA',
+        },
+        {
+          label: 'Potência (W)',
+          data: dadosPotencia,
+          borderColor: '#f7c94f',
+          backgroundColor: 'rgba(247,201,79,.08)',
+          tension: .4,
+          pointRadius: 2,
+          yAxisID: 'yW',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      plugins: { legend: { labels: { color: '#8892a4', font: { size: 11 } } } },
+      scales: {
+        x:  { ticks: { color: '#8892a4', maxTicksLimit: 10, font: { size: 10 } }, grid: { color: '#2a2d3e' } },
+        yA: { position: 'left',  ticks: { color: '#4f8ef7', font: { size: 10 } }, grid: { color: '#2a2d3e' } },
+        yW: { position: 'right', ticks: { color: '#f7c94f', font: { size: 10 } }, grid: { drawOnChartArea: false } },
+      },
+    },
+  });
+
+  // ── Chart.js — doughnut ──
+  const ctxDoughnut = document.getElementById('chartDoughnut').getContext('2d');
+  const chartDoughnut = new Chart(ctxDoughnut, {
+    type: 'doughnut',
+    data: {
+      labels: ['Potência atual', 'Capacidade restante (100A)'],
+      datasets: [{
+        data: [0, 100],
+        backgroundColor: ['#4f8ef7', '#2a2d3e'],
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { labels: { color: '#8892a4', font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.label + ': ' + ctx.parsed.toFixed(1) + ' W',
+          },
+        },
+      },
+    },
+  });
+
+  // ── Log serial ──
+  const logBox = document.getElementById('logBox');
+  function appendLog(msg) {
+    const now = new Date();
+    const ts  = now.toLocaleTimeString('pt-BR');
+    logBox.innerHTML += `<span class="ts">[${ts}]</span> ${msg}\n`;
+    logBox.scrollTop = logBox.scrollHeight;
+    // Limita a 200 linhas
+    const lines = logBox.innerHTML.split('\n');
+    if (lines.length > 200) logBox.innerHTML = lines.slice(-200).join('\n');
+  }
+
+  // ── Loop principal ──
+  function tick() {
+    const correnteRms  = lerCorrenteRMS();
+    const potenciaW    = correnteRms * tensaoRede;
+    const dtHoras      = intervalo / 3600000.0;
+    energiaKwh        += (potenciaW * dtHoras) / 1000.0;
+    const custo        = energiaKwh * TARIFA_KWH;
+    const tempoSeg     = Math.floor((Date.now() - tempoInicio) / 1000);
+
+    // KPIs
+    document.getElementById('kpiCorrente').textContent = correnteRms.toFixed(3);
+    document.getElementById('kpiPotencia').textContent = potenciaW.toFixed(2);
+    document.getElementById('kpiEnergia').textContent  = energiaKwh.toFixed(6);
+    document.getElementById('kpiCusto').textContent    = custo.toFixed(4);
+
+    // Gráfico linha
+    const label = tempoSeg + 's';
+    labels.push(label);
+    dadosCorrente.push(+correnteRms.toFixed(3));
+    dadosPotencia.push(+potenciaW.toFixed(2));
+    if (labels.length > MAX_PONTOS) {
+      labels.shift(); dadosCorrente.shift(); dadosPotencia.shift();
+    }
+    chartLine.update();
+
+    // Gráfico doughnut — % da capacidade máxima (100A × 127V = 12700W)
+    const capacidadeMax = 100 * tensaoRede;
+    const pct = Math.min(potenciaW, capacidadeMax);
+    chartDoughnut.data.datasets[0].data = [pct, capacidadeMax - pct];
+    chartDoughnut.update();
+
+    // Log
+    appendLog(
+      `Tempo(s): ${tempoSeg} | Corrente: ${correnteRms.toFixed(3)} A | Potencia: ${potenciaW.toFixed(2)} W | Energia: ${energiaKwh.toFixed(6)} kWh`
+    );
+  }
+
+  function startTimer() {
+    if (timer) clearInterval(timer);
+    timer = setInterval(tick, intervalo);
+  }
+
+  startTimer();
+  tick(); // primeira leitura imediata
+
+  // ── Controles ──
+  document.getElementById('btnToggle').addEventListener('click', () => {
+    running = !running;
+    const btn = document.getElementById('btnToggle');
+    if (running) {
+      startTimer();
+      btn.textContent = 'Pausar';
+      btn.className = 'btn primary';
+    } else {
+      clearInterval(timer);
+      btn.textContent = 'Retomar';
+      btn.className = 'btn';
+    }
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    energiaKwh  = 0;
+    tempoInicio = Date.now();
+    labels.length = 0;
+    dadosCorrente.length = 0;
+    dadosPotencia.length = 0;
+    chartLine.update();
+    logBox.innerHTML = '';
+    appendLog('Energia e histórico zerados.');
+  });
+
+  document.getElementById('selTensao').addEventListener('change', e => {
+    tensaoRede = parseFloat(e.target.value);
+    appendLog(`Tensão da rede alterada para ${tensaoRede} V.`);
+  });
+
+  document.getElementById('selIntervalo').addEventListener('change', e => {
+    intervalo = parseInt(e.target.value);
+    if (running) startTimer();
+    appendLog(`Intervalo de leitura alterado para ${intervalo} ms.`);
+  });
+</script>
+</body>
+</html>
