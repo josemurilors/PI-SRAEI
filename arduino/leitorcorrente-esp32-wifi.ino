@@ -53,32 +53,34 @@ float lerCorrenteRMS(int pino, int amostras = 1000) {
   return corrente;
 #else
   float soma_quadrados = 0.0;
+  int leituras_acima_zero = 0;
 
   for (int i = 0; i < amostras; i++) {
     int leitura_adc = analogRead(pino);
-
+    
     // Converte ADC para tensão (ESP32: 0-4095 → 0-3.3V)
     float tensao_adc = (leitura_adc / (float)RESOLUCAO_ADC) * TENSAO_REFERENCIA;
-
+    
     // Remove o offset (bias de 1.65V do divisor de tensão)
     float tensao_sensor = tensao_adc - OFFSET_ADC;
-
+    
     // Corrente no secundário: I = V / R
     float corrente_sec = tensao_sensor / RESISTOR_BURDEN;
-
+    
     // Corrente real (primário): I_prim = I_sec * relação de espiras
     float corrente_prim = corrente_sec * RELACAO_ESPIRAS;
-
+    
+    // Acumula o quadrado da corrente primária
     soma_quadrados += corrente_prim * corrente_prim;
     delayMicroseconds(200); // ~5 ciclos de 60Hz em 1000 amostras
   }
-
-  float rms = sqrt(soma_quadrados / amostras);
-
-  // Filtra ruído: abaixo de 0.3A é desprezível para sensor de 100A
-  if (rms < 0.3) rms = 0.0;
-
-  return rms;
+  
+  // Verifica se temos leituras válidas
+  if (amostras > 0) {
+    float corrente_rms = sqrt(soma_quadrados / amostras);
+    return corrente_rms;
+  }
+  return 0.0;
 #endif
 }
 
@@ -134,6 +136,12 @@ void loop() {
 
     // --- Leitura e cálculo ---
     corrente_rms   = lerCorrenteRMS(PINO_SENSOR_CORRENTE);
+    
+    // Verifica se a leitura é válida antes de calcular potência
+    if (corrente_rms < 0.3) {
+      corrente_rms = 0.0;
+    }
+    
     potencia_watts = corrente_rms * TENSAO_REDE;
 
     // Acumula energia em kWh (P[W] * dt[h])
