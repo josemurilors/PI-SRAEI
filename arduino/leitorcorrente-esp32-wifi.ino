@@ -3,16 +3,22 @@
 #include <HTTPClient.h>
 
 // --- Configurações do Sensor SCT-013-000 (100A) no ESP32 ---
+// Nova configuração com divisor de tensão de 10kΩ e resistor de proteção de 100Ω
 const int   PINO_SENSOR_CORRENTE = 34;      // GPIO34 (ADC1_CH6 - somente leitura)
 const float TENSAO_REFERENCIA    = 3.3;     // ESP32 opera em 3.3V
 const int   RESOLUCAO_ADC        = 4095;    // ESP32 tem ADC de 12 bits
-const float TENSAO_REDE          = 127.0;   // Ajuste para 220.0 se necessário
+const float TENSAO_REDE        = 127.0;   // Ajuste para 220.0 se necessário
 
-// SCT-013-000: 100A:50mA (relação de espiras = 2000)
-// Resistor burden de 33Ω → Vpico máx = 0.05A * 33Ω = 1.65V (seguro para 3.3V com bias)
-const float RESISTOR_BURDEN  = 33.0;        // Ohms
-const float RELACAO_ESPIRAS  = 2000.0;      // 100A / 0.05A
-const float OFFSET_ADC       = (TENSAO_REFERENCIA / 2.0); // Bias = 1.65V
+// Novos componentes do circuito:
+// - Divisor de tensão: 2x 10kΩ resistores para bias de 1.65V
+// - Capacitor de 10µF para filtragem
+// - 3x 100Ω resistores em paralelo para proteção
+const float RESISTOR_BURDEN    = 33.0;    // Resistor burden do sensor (33Ω)
+const float RESISTOR_DIVISOR   = 10000.0;  // 2x 10kΩ em série para bias
+const float RESISTOR_PROTECAO   = 33.33;   // 3x 100Ω em paralelo (valor efetivo: 100Ω/3)
+const float CAPACITOR_FILTRO    = 0.00001;  // 10µF = 0.00001F
+const float RELACAO_ESPIRAS     = 2000.0;  // 100A / 0.05A
+const float OFFSET_ADC         = (TENSAO_REFERENCIA / 2.0); // Bias = 1.65V
 
 // --- Modo simulação (1 = sem sensor, 0 = sensor real) ---
 #define MODO_SIMULACAO 0
@@ -92,6 +98,10 @@ void setup() {
   Serial.println(" UNIVESP - Grupo 14                        ");
   Serial.println(" Placa: ESP32                              ");
   Serial.println(" Sensor: SCT-013-000 (100A)                ");
+  Serial.println(" Componentes:                                ");
+  Serial.println("  - Divisor de tensão: 2x 10kΩ resistors     ");
+  Serial.println("  - Capacitor: 10µF                         ");
+  Serial.println("  - Resistores de proteção: 3x 100Ω        ");
   Serial.println("============================================");
 
   // Conecta ao WiFi
