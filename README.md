@@ -8,7 +8,7 @@ Sistema Residencial de Análise Energética Inteligente
 
 ## Descrição
 
-Sistema de monitoramento energético IoT baseado em ESP32 com sensor de corrente SCT-013-000 (100A). O sistema realiza leitura contínua da corrente elétrica, calcula potência e acumula o consumo de energia em kWh, transmitindo os dados via Serial.
+Sistema de monitoramento energético IoT baseado em ESP32 com sensor de corrente SCT-013-000 (100A). O sistema realiza leitura contínua da corrente elétrica, calcula potência e acumula o consumo de energia em kWh, transmitindo os dados via WiFi para um backend Flask que armazena e exibe os dados em um dashboard web.
 
 ---
 
@@ -50,7 +50,7 @@ Sistema de monitoramento energético IoT baseado em ESP32 com sensor de corrente
 
 ### Arquivo principal
 
-`arduino/leitorcorrente-esp32.ino`
+`arduino/leitorcorrente-esp32-wifi.ino`
 
 ### Configurações
 
@@ -121,9 +121,7 @@ Configurar o monitor serial para **115200 baud**.
 
 | Arquivo | Status | Descrição |
 |---|---|---|
-| `arduino/leitorcorrente-esp32.ino` | Ativo | Firmware principal para ESP32 (Serial) |
-| `arduino/leitorcorrente-esp32-wifi.ino` | Ativo | Firmware ESP32 com WiFi + HTTP para backend |
-| `arduino/Arduino-Sensor-SCT-013-000.ino` | **Descontinuado** | Versão legada para Arduino (ADC 10 bits, 5V) |
+| `arduino/leitorcorrente-esp32-wifi.ino` | **Ativo** | Firmware ESP32 com WiFi + HTTP para backend |
 
 ---
 
@@ -136,13 +134,10 @@ Após montar o circuito do sensor SCT-013-000 com o ESP32, siga os passos abaixo
 ```
 SCT-013-000 (Sensor de Corrente)
 ├── Fio S (sinal) ──→ Burden Resistor (33Ω) ──→ ESP32 GPIO34 (ADC1_CH6)
-├── Fio S (sinal) ──→ Burden Resistor (33Ω) ──→ Divisor de Tensão (2×10kΩ) ──→ GND
-└── Fio S (sinal) ──→ Burden Resistor (33Ω) ──→ Divisor de Tensão (2×10kΩ) ──→ 3.3V
-
-Alimentação:
-- VCC do ESP32 → 3.3V
-- GND do ESP32 → GND comum
+└── Alimentação: VCC do ESP32 (3.3V) e GND comum
 ```
+
+Sensor: SCT-013-000 (100A:50mA) com resistor burden (33Ω)
 
 > **Nota:** O divisor de tensão (2 resistores de 10kΩ em série) cria um bias de 1.65V (metade de 3.3V), necessário para leitura de sinais AC.
 
@@ -355,15 +350,12 @@ http://localhost:5000
 ```
 PI-SRAEI/
 ├── arduino/
-│   ├── leitorcorrente-esp32.ino       # Firmware principal (ESP32)
-│   └── Arduino-Sensor-SCT-013-000.ino # Versão legada (descontinuada)
+│   └── leitorcorrente-esp32-wifi.ino       # Firmware principal (ESP32)
 ├── backend/
-│   ├── app.py                         # Flask app + simulação + SQLite
+│   ├── app.py                         # Flask app + SQLite
 │   ├── sraei.db                       # Banco SQLite (criado automaticamente)
 │   └── templates/
 │       └── simple_index.html           # Dashboard web simplificado
-├── web/
-│   └── index.html                     # Dashboard web completo (versão anterior)
 └── README.md
 ```
 
