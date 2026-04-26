@@ -92,7 +92,8 @@ def background_thread():
         db.commit()
         db.close()
 
-threading.Thread(target=background_thread, daemon=True).start()
+# Remover a inicialização automática da thread de simulação
+# threading.Thread(target=background_thread, daemon=True).start()
 
 @app.route('/')
 def index():
@@ -100,8 +101,7 @@ def index():
 
 @app.route('/api/data')
 def api_data():
-    # Se o ESP32 estiver enviando dados, usa dados reais do banco
-    # Caso contrário, usa simulação Python
+    # Sempre usa dados reais do banco, sem simulação
     db = sqlite3.connect(DATABASE)
     last_reading = db.execute("""
         SELECT corrente, potencia, energia FROM readings
@@ -115,11 +115,10 @@ def api_data():
         potencia = last_reading[1]
         energia = last_reading[2]
     else:
-        # Simulação Python
-        with lock:
-            corrente = simulate_current_rms(time.time() - t_start)
-            potencia = corrente * 127.0
-            energia = energia_kwh
+        # Valores padrão quando não há dados
+        corrente = 0.0
+        potencia = 0.0
+        energia = 0.0
 
     price = get_price_per_kwh()
     custo = energia * price
