@@ -43,6 +43,9 @@ Sistema de monitoramento energético IoT baseado em ESP32 com sensor de corrente
 | Resistor burden | 33 Ω |
 | Relação de espiras | 2000 (100A / 0.05A) |
 | Tensão da rede | 127V (configurável para 220V) |
+| Divisor de tensão | 2x 10kΩ resistores para bias de 1.65V |
+| Capacitor | 10µF para filtrar ruídos |
+| Resistores de proteção | 3x 100Ω em paralelo (R3, R4, R5) |
 
 ---
 
@@ -125,23 +128,84 @@ Configurar o monitor serial para **115200 baud**.
 
 ---
 
-## Conexão do ESP32 ao Backend (IoT)
+## Conexão do ESP32 ao Sensor SCT-013-000
 
-Após montar o circuito do sensor SCT-013-000 com o ESP32, siga os passos abaixo para conectar ao backend Flask.
+A conexão do sensor SCT-013-000 ao ESP32 é feita através de um circuito que inclui um divisor de tensão e resistores de proteção para garantir leituras precisas e seguras.
 
-### 1. Circuito: SCT-013-000 → ESP32
+### 1. Diagrama de Conexão
 
 ```
-SCT-013-000 (Sensor de Corrente)
-├── Fio S (sinal) ──→ Burden Resistor (33Ω) ──→ ESP32 GPIO34 (ADC1_CH6)
-└── Alimentação: VCC do ESP32 (3.3V) e GND comum
+ESP32 DEVKIT V1          PROTOBOARD (Visualização Superior)
+      +----------------+       +---------------------------------------+
+      | [ ] USB    [ ] |       | (3V3) [R1]--+--[R3]--+----(D34)       |
+      |                |       |             |        |                |
+      | 3V3 [1]--------|-------|------------>|        +--[R4]--+       |
+      | GND [2]--------|-------|---+         |        |        |       |
+      | D34 [3]--------|-------|---|---------|------->+--[R5]--+       |
+      +----------------+       |   |         |        |        |       |
+                               |   |       [CAP]      +--[R6]--+       |
+      LEGENDA:                 |   |         |        |        |       |
+      [1] Fio Vermelho (3V3)   |   +--[R2]---+--------|--------+       |
+      [2] Fio Preto (GND)      |             |        |                |
+      [3] Fio Amarelo (Sinal)  |           (GND)      |   (SENSOR)     |
+                               |                      |    /    \      |
+                               |                      +---O      O-----+
+                               +---------------------------------------+
 ```
 
-Sensor: SCT-013-000 (100A:50mA) com resistor burden (33Ω)
+### 2. Componentes e Conexões
 
-> **Nota:** O divisor de tensão (2 resistores de 10kΩ em série) cria um bias de 1.65V (metade de 3.3V), necessário para leitura de sinais AC.
+#### Componentes:
+- **R1 e R2 (10kΩ)**: Formam o divisor de tensão. O ponto central entre eles é onde a tensão de 1,65V é criada.
+- **CAP (10µF)**: O capacitor ligado entre o ponto central e o GND para filtrar ruídos da rede.
+- **R3, R4 e R5 (100Ω cada)**: São os três resistores de 100R em paralelo. Eles estão "empilhados" eletricamente entre o ponto de 1,65V e a saída para o pino D34.
+- **SENSOR (SCT-013-000)**: Sensor de corrente não invasivo.
 
-### 2. Configurar o Firmware WiFi
+#### Conexões Físicas:
+- **3V3**: vai para o início do R1.
+- **GND**: vai para o final do R2 e o polo negativo do CAP.
+- **D34**: recebe o sinal que sai do conjunto de resistores de 100R.
+
+### 3. Descrição dos Componentes
+
+1. **Sensor de Corrente SCT-013-000**:
+   - Sensor de corrente não invasivo para medição de carga elétrica
+   - Conectado em um dos fios de alimentação do circuito a ser monitorado
+   - Saída de corrente proporcional à corrente medida
+
+2. **Divisor de Tensão (R1 e R2)**:
+   - Dois resistores de 10kΩ em série entre 3V3 e GND
+   - Cria um ponto de referência de 1,65V (metade da tensão de alimentação)
+   - Necessário para leitura de sinais AC com o ESP32
+
+3. **Resistores de Proteção (R3, R4, R5)**:
+   - Três resistores de 100Ω em paralelo
+   - Limitam a corrente que chega ao pino D34 do ESP32
+   - Protegem o microcontrolador contra picos de tensão
+
+4. **Capacitor (CAP)**:
+   - Capacitor de 10µF conectado entre o ponto de bias e GND
+   - Filtra ruídos e estabiliza a tensão de referência
+   - Melhora a qualidade da leitura do sinal
+
+5. **Conexão do Sensor**:
+   - Os dois fios do sensor devem ser conectados nas mesmas trilhas onde começa e termina o bloco de resistores de 100Ω
+   - Um fio conecta ao ponto de bias (1,65V)
+   - Outro fio conecta ao resistor de proteção (R3/R4/R5)
+
+### 4. Funcionamento do Circuito
+
+O circuito foi projetado para garantir leituras precisas e seguras do sensor de corrente SCT-013-000:
+
+1. **Divisor de Tensão**: Os resistores R1 e R2 criam um ponto de bias de 1,65V, que é a metade da tensão de alimentação do ESP32 (3,3V). Isso permite a leitura de sinais AC, já que o sensor gera um sinal alternado em torno desse valor médio.
+
+2. **Proteção com Resistores**: Os resistores R3, R4 e R5 (100Ω cada) em paralelo limitam a corrente que chega ao pino D34 do ESP32, protegendo o microcontrolador contra picos de tensão e corrente.
+
+3. **Filtragem com Capacitor**: O capacitor de 10µF conectado entre o ponto de bias e GND filtra ruídos e estabiliza a tensão de referência, melhorando a qualidade da leitura do sinal.
+
+4. **Conexão do Sensor**: O sensor SCT-013-000 é conectado entre o ponto de bias (1,65V) e o resistor de proteção. O sinal do sensor é então lido pelo ESP32 através do pino D34.
+
+### 5. Configurar o Firmware WiFi
 
 Edite o arquivo `arduino/leitorcorrente-esp32-wifi.ino` e altere:
 
