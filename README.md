@@ -40,7 +40,6 @@ Sistema de monitoramento energético IoT baseado em ESP32 com sensor de corrente
 | Pino ADC | GPIO34 (ADC1_CH6 — somente leitura) |
 | Tensão de referência | 3.3V |
 | Resolução ADC | 12 bits (0–4095) |
-| Resistor burden | 33 Ω |
 | Relação de espiras | 2000 (100A / 0.05A) |
 | Tensão da rede | 127V (configurável para 220V) |
 | Divisor de tensão | 2x 10kΩ resistores para bias de 1.65V |
@@ -61,9 +60,8 @@ Sistema de monitoramento energético IoT baseado em ESP32 com sensor de corrente
 const int   PINO_SENSOR_CORRENTE = 34;      // GPIO34
 const float TENSAO_REFERENCIA    = 3.3;     // ESP32 opera em 3.3V
 const int   RESOLUCAO_ADC        = 4095;    // ADC de 12 bits
-const float TENSAO_REDE          = 127.0;   // Ajuste para 220.0 se necessário
-const float RESISTOR_BURDEN      = 33.0;    // Ohms
-const float RELACAO_ESPIRAS      = 2000.0;  // 100A / 0.05A
+const float TENSAO_REDE        = 127.0;   // Ajuste para 220.0 se necessário
+const float RELACAO_ESPIRAS     = 2000.0;  // 100A / 0.05A
 ```
 
 ### Modo simulação
@@ -171,7 +169,7 @@ ESP32 DEVKIT V1          PROTOBOARD (Visualização Superior)
 1. **Sensor de Corrente SCT-013-000**:
    - Sensor de corrente não invasivo para medição de carga elétrica
    - Conectado em um dos fios de alimentação do circuito a ser monitorado
-   - Saída de corrente proporcional à corrente medida
+   - Saída de corrente proporcional à corrente medida (100A : 50mA)
 
 2. **Divisor de Tensão (R1 e R2)**:
    - Dois resistores de 10kΩ em série entre 3V3 e GND
@@ -181,7 +179,7 @@ ESP32 DEVKIT V1          PROTOBOARD (Visualização Superior)
 3. **Resistores de Proteção (R3, R4, R5)**:
    - Três resistores de 100Ω em paralelo
    - Limitam a corrente que chega ao pino D34 do ESP32
-   - Protegem o microcontrolador contra picos de tensão
+   - Protegem o microcontrolador contra picos de tensão e corrente
 
 4. **Capacitor (CAP)**:
    - Capacitor de 10µF conectado entre o ponto de bias e GND
