@@ -12,10 +12,10 @@ const float TENSAO_REDE        = 127.0;   // Ajuste para 220.0 se necessário
 // Novos componentes do circuito:
 // - Divisor de tensão: 2x 10kΩ resistores para bias de 1.65V
 // - Capacitor de 10µF para filtragem
-// - 3x 100Ω resistores em paralelo para proteção
-const float RESISTOR_BURDEN    = 33.0;    // Resistor burden do sensor (33Ω)
+// - Resistor burden: 300Ω (3x 100Ω em serie)
+const float RESISTOR_BURDEN    = 300.0;   // Resistor burden adaptado (3x 100Ohm em serie)
 const float RESISTOR_DIVISOR   = 10000.0;  // 2x 10kΩ em série para bias
-const float RESISTOR_PROTECAO   = 33.33;   // 3x 100Ω em paralelo (valor efetivo: 100Ω/3)
+const float RESISTOR_PROTECAO   = 100.0;   // Resistor de proteção (100Ω)
 const float CAPACITOR_FILTRO    = 0.00001;  // 10µF = 0.00001F
 const float RELACAO_ESPIRAS     = 2000.0;  // 100A / 0.05A
 const float OFFSET_ADC         = (TENSAO_REFERENCIA / 2.0); // Bias = 1.65V
@@ -45,43 +45,56 @@ unsigned long tempo_inicio      = 0;
 // Lê N amostras do SCT-013-000 e calcula o valor RMS da corrente
 // ============================================================
 float lerCorrenteRMS(int pino, int amostras = 1000) {
-#if MODO_SIMULACAO
+  #if MODO_SIMULACAO
   // Simula corrente residencial variando entre ~2A e ~14A
   float t = millis() / 1000.0;
   float corrente = 8.0 + 6.0 * sin(2.0 * PI * 0.05 * t);
   if (corrente < 0) corrente = 0;
   return corrente;
-#else
-  float soma_quadrados = 0.0;
-  int leituras_acima_zero = 0;
+  #else
+  // --- Passo 1: calcula o offset dinamico (media real do divisor de tensao) ---
+  // Isso elimina erros causados por variacoes nos resistores ou ruido no bias
+  float soma_offset = 0.0;
+  for (int i = 0; i < amostras; i++) {
+    soma_offset += analogRead(pino);
+    delayMicroseconds(200);
+  }
+  float offset_adc_counts = soma_offset / amostras;
+  float offset_dinamico   = (offset_adc_counts / (float)RESOLUCAO_ADC) * TENSAO_REFERENCIA;
 
+  // Log do offset medido para diagnostico via Serial
+  Serial.print("[DEBUG] Offset dinamico medido: ");
+  Serial.print(offset_dinamico, 4);
+  Serial.println(" V  (esperado ~1.6500 V)");
+
+  // --- Passo 2: calcula o RMS usando o offset dinamico ---
+  float soma_quadrados = 0.0;
   for (int i = 0; i < amostras; i++) {
     int leitura_adc = analogRead(pino);
-    
-    // Converte ADC para tensão (ESP32: 0-4095 → 0-3.3V)
+
+    // Converte ADC para tensao (ESP32: 0-4095 -> 0-3.3V)
     float tensao_adc = (leitura_adc / (float)RESOLUCAO_ADC) * TENSAO_REFERENCIA;
-    
-    // Remove o offset (bias de 1.65V do divisor de tensão)
-    float tensao_sensor = tensao_adc - OFFSET_ADC;
-    
-    // Corrente no secundário: I = V / R
+
+    // Remove o offset dinamico medido (substitui o 1.65V fixo)
+    float tensao_sensor = tensao_adc - offset_dinamico;
+
+    // Corrente no secundario: I = V / R_burden
     float corrente_sec = tensao_sensor / RESISTOR_BURDEN;
-    
-    // Corrente real (primário): I_prim = I_sec * relação de espiras
+
+    // Corrente real (primario): I_prim = I_sec * relacao de espiras
     float corrente_prim = corrente_sec * RELACAO_ESPIRAS;
-    
-    // Acumula o quadrado da corrente primária
+
+    // Acumula o quadrado da corrente primaria
     soma_quadrados += corrente_prim * corrente_prim;
-    delayMicroseconds(200); // ~5 ciclos de 60Hz em 1000 amostras
+    delayMicroseconds(200);
   }
-  
-  // Verifica se temos leituras válidas
+
   if (amostras > 0) {
     float corrente_rms = sqrt(soma_quadrados / amostras);
     return corrente_rms;
   }
   return 0.0;
-#endif
+  #endif
 }
 
 // ============================================================
@@ -101,9 +114,9 @@ void setup() {
   Serial.println(" Placa: ESP32                              ");
   Serial.println(" Sensor: SCT-013-000 (100A)                ");
   Serial.println(" Componentes:                                ");
-  Serial.println("  - Divisor de tensão: 2x 10kΩ resistors     ");
-  Serial.println("  - Capacitor: 10µF                         ");
-  Serial.println("  - Resistores de proteção: 3x 100Ω        ");
+  Serial.println("  - Divisor de tensao: 2x 10kOhm             ");
+  Serial.println("  - Capacitor: 10uF                         ");
+  Serial.println("  - Resistor burden: 100 Ohm (adaptado)    ");
   Serial.println("============================================");
 
   // Conecta ao WiFi
@@ -136,12 +149,13 @@ void loop() {
 
     // --- Leitura e cálculo ---
     corrente_rms   = lerCorrenteRMS(PINO_SENSOR_CORRENTE);
-    
-    // Verifica se a leitura é válida antes de calcular potência
-    if (corrente_rms < 0.3) {
+
+    // Limiar de ruido: leituras abaixo de 0.5A com carga ausente
+    // sao interferencia eletromagnetica do fio, nao corrente real
+    if (corrente_rms < 0.5) {
       corrente_rms = 0.0;
     }
-    
+
     potencia_watts = corrente_rms * TENSAO_REDE;
 
     // Acumula energia em kWh (P[W] * dt[h])
