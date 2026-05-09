@@ -260,11 +260,20 @@ O ESP32 envia os dados via HTTP POST para o endpoint `/api/esp32`. O backend arm
 ### Funcionalidades do Site (Simplificado)
 
 - Indicadores em tempo real: **Corrente RMS**, **Potência**, **Energia Acumulada**, **Custo Estimado**
+  <img width="1224" height="125" alt="image" src="https://github.com/user-attachments/assets/2bd97e7e-7b08-4099-84fa-f0ab4fbe3a48" />
 - Gráfico de linha com histórico das últimas 50 leituras de corrente
+  <img width="1216" height="337" alt="image" src="https://github.com/user-attachments/assets/bbad4d8a-1fc8-4c7e-a91b-a634e87a36ce" />
 - Controles: pausar/retomar, zerar energia, alterar tensão da rede (127V/220V), intervalo de leitura
+  <img width="563" height="46" alt="image" src="https://github.com/user-attachments/assets/0396ddac-4fcf-4e10-b1aa-822ca33681da" />
 - **Campo para alterar o valor do kWh** (preço da energia em R$)
+ <img width="288" height="50" alt="image" src="https://github.com/user-attachments/assets/320bbe58-ba3b-4c60-b548-776111306f33" />
+- Página de Dashboard com análise de consumo detalhada.
+  <img width="1864" height="1555" alt="image" src="https://github.com/user-attachments/assets/9fb2b306-5442-4eba-9a08-c8be30959f91" />
 
-> Seções removidas no layout simplificado: Log Serial, Distribuição de Potência, Hardware, Fórmulas, Projeto, Objetivos do Projeto, Exploratórios, Descritivos, Explicativos.
+  
+
+
+
 
 ### Como rodar
 
