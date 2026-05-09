@@ -123,22 +123,8 @@ A conexão do sensor SCT-013-000 ao ESP32 é feita através de um circuito que i
 ### 1. Diagrama de Conexão
 
 ```
-ESP32 DEVKIT V1          PROTOBOARD (Visualização Superior)
-      +----------------+       +---------------------------------------+
-      | [ ] USB    [ ] |       | (3V3) [R1]--+--[R3]--+----(D34)       |
-      |                |       |             |        |                |
-      | 3V3 [1]--------|-------|------------>|        +--[R4]--+       |
-      | GND [2]--------|-------|---+         |        |        |       |
-      | D34 [3]--------|-------|---|---------|------->+--[R5]--+       |
-      +----------------+       |   |         |        |        |       |
-                               |   |       [CAP]      +--[R6]--+       |
-      LEGENDA:                 |   |         |        |        |       |
-      [1] Fio Vermelho (3V3)   |   +--[R2]---+--------|--------+       |
-      [2] Fio Preto (GND)      |             |        |                |
-      [3] Fio Amarelo (Sinal)  |           (GND)      |   (SENSOR)     |
-                               |                      |    /    \      |
-                               |                      +---O      O-----+
-                               +---------------------------------------+
+<img width="1214" height="628" alt="image" src="https://github.com/user-attachments/assets/d5f2cc23-a46d-4efd-9a4c-fbed4df42878" />
+
 ```
 
 ### 2. Componentes e Conexões
