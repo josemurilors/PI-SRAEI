@@ -122,10 +122,9 @@ A conexão do sensor SCT-013-000 ao ESP32 é feita através de um circuito que i
 
 ### 1. Diagrama de Conexão
 
-```
+
 <img width="1214" height="628" alt="image" src="https://github.com/user-attachments/assets/d5f2cc23-a46d-4efd-9a4c-fbed4df42878" />
 
-```
 
 ### 2. Componentes e Conexões
 
