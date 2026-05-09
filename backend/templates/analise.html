@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRAEI — Análise de Consumo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3e;
+      --accent:    #4f8ef7;
+      --accent2:   #f7c94f;
+      --accent3:   #4ff7a0;
+      --danger:    #f7604f;
+      --text:      #e2e8f0;
+      --muted:     #8892a4;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header .brand { display: flex; align-items: center; gap: 12px; }
+    header .brand svg { width: 36px; height: 36px; }
+    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
+    header p  { font-size: .75rem; color: var(--muted); }
+
+    .nav-bar { display: flex; gap: 8px; align-items: center; }
+
+    main { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+    .kpi label { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+    .kpi .value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; margin: 4px 0 2px; }
+    .kpi .value.blue   { color: var(--accent); }
+    .kpi .value.green  { color: var(--accent3); }
+    .kpi .value.yellow { color: var(--accent2); }
+    .kpi .value.red    { color: var(--danger); }
+    .kpi .unit  { font-size: .75rem; color: var(--muted); }
+
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .chart-row { grid-template-columns: 1fr; } }
+
+    .chart-wrap { position: relative; height: 260px; }
+
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filters label { font-size: .8rem; color: var(--muted); }
+    .filters input, .filters select {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: .8rem;
+    }
+    .filters input[type="date"] { color-scheme: dark; }
+
+    .btn {
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: .8rem;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: var(--border); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .8rem;
+      cursor: pointer;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      transition: border-color .2s;
+    }
+    .checkbox-group label.active { border-color: var(--accent); }
+    .checkbox-group input { accent-color: var(--accent); }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .8rem;
+    }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:hover td { background: rgba(79, 142, 247, .05); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="17" stroke="#4f8ef7" stroke-width="2"/>
+      <path d="M18 8 L14 20 H18 L16 28 L24 16 H19 L22 8 Z" fill="#4f8ef7"/>
+    </svg>
+    <div>
+      <h1>SRAEI — Análise de Consumo</h1>
+      <p>Dashboard analítico &nbsp;|&nbsp; {{ entidades|length }} entidades &nbsp;|&nbsp; UNIVESP — Grupo 14</p>
+    </div>
+  </div>
+  <div class="nav-bar">
+    <a href="/" class="btn">&larr; Dashboard</a>
+    <a href="/dev-config" class="btn">⚙️ Dev</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Filtros ── -->
+  <div class="card">
+    <h2>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Filtros
+    </h2>
+    <div class="filters">
+      <label>Entidades:</label>
+      <div class="checkbox-group" id="entidadeGroup">
+        {% for e in entidades %}
+        <label class="active">
+          <input type="checkbox" value="{{ e }}" checked onchange="aplicarFiltros()" />
+          {{ e }}
+        </label>
+        {% endfor %}
+      </div>
+      <label>De:</label>
+      <input type="date" id="inpDataIni" onchange="aplicarFiltros()" />
+      <label>Até:</label>
+      <input type="date" id="inpDataFim" onchange="aplicarFiltros()" />
+      <button class="btn primary" onclick="aplicarFiltros()">Atualizar</button>
+    </div>
+  </div>
+
+  <!-- ── KPIs ── -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi"><label>Consumo Total</label><div class="value blue" id="kpiTotal">—</div><div class="unit">kWh</div></div>
+    <div class="kpi"><label>Custo Total</label><div class="value yellow" id="kpiCusto">—</div><div class="unit">R$</div></div>
+    <div class="kpi"><label>Custo Médio / Dia</label><div class="value green" id="kpiCustoDia">—</div><div class="unit">R$/dia</div></div>
+    <div class="kpi"><label>Preço do kWh</label><div class="value red" id="kpiPreco">—</div><div class="unit">R$/kWh</div></div>
+    <div class="kpi"><label>Máximo</label><div class="value yellow" id="kpiMax">—</div><div class="unit">kWh</div></div>
+    <div class="kpi"><label>Mínimo</label><div class="value red" id="kpiMin">—</div><div class="unit">kWh</div></div>
+    <div class="kpi"><label>Registros</label><div class="value blue" id="kpiRegistros">—</div><div class="unit">leituras</div></div>
+    <div class="kpi"><label>Período</label><div class="value green" id="kpiDias">—</div><div class="unit">dias</div></div>
+  </div>
+
+  <!-- ── Gráficos ── -->
+  <div class="chart-row">
+    <div class="card">
+      <h2>Consumo por Entidade</h2>
+      <div class="chart-wrap"><canvas id="chartEntidade"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Consumo por Hora do Dia</h2>
+      <div class="chart-wrap"><canvas id="chartHora"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Consumo Diário</h2>
+    <div class="chart-wrap" style="height:300px"><canvas id="chartTempo"></canvas></div>
+  </div>
+
+  <!-- ── Tabela ── -->
+  <div class="card">
+    <h2>Dados Detalhados</h2>
+    <div class="table-wrap" id="tabelaWrap">
+      <table>
+        <thead><tr><th>Timestamp</th><th>Entidade</th><th>Consumo (kWh)</th></tr></thead>
+        <tbody id="tabelaBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // =================================================================
+  // GRÁFICOS
+  // =================================================================
+  const colors = ['#4f8ef7','#f7c94f','#4ff7a0','#f7604f','#a78bfa','#f97316'];
+
+  const chartEntidade = new Chart(document.getElementById('chartEntidade'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'Total (kWh)', data: [], backgroundColor: colors, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8892a4', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#8892a4', font: { size: 10 } }, grid: { color: '#2a2d3e' }, beginAtZero: true },
+      },
+    },
+  });
+
+  const chartTempo = new Chart(document.getElementById('chartTempo'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Consumo (kWh)', data: [], borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,.08)', tension: .3, fill: true, pointRadius: 3, yAxisID: 'y' },
+        { label: 'Custo (R$)', data: [], borderColor: '#f7c94f', backgroundColor: 'rgba(247,201,79,.08)', tension: .3, fill: true, pointRadius: 3, yAxisID: 'y1' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892a4', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#8892a4', maxTicksLimit: 12, font: { size: 10 } }, grid: { color: '#2a2d3e' } },
+        y: { ticks: { color: '#4f8ef7', font: { size: 10 } }, grid: { color: '#2a2d3e' }, beginAtZero: true, position: 'left', title: { display: true, text: 'kWh', color: '#4f8ef7', font: { size: 10 } } },
+        y1: { ticks: { color: '#f7c94f', font: { size: 10 } }, grid: { display: false }, beginAtZero: true, position: 'right', title: { display: true, text: 'R$', color: '#f7c94f', font: { size: 10 } } },
+      },
+    },
+  });
+
+  const chartHora = new Chart(document.getElementById('chartHora'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'Média (kWh)', data: [], backgroundColor: '#4ff7a0', borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8892a4', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#8892a4', font: { size: 10 } }, grid: { color: '#2a2d3e' }, beginAtZero: true },
+      },
+    },
+  });
+
+  // =================================================================
+  // FUNÇÕES DE FILTRO
+  // =================================================================
+  function getEntidadesSelecionadas() {
+    return Array.from(document.querySelectorAll('#entidadeGroup input:checked')).map(cb => cb.value);
+  }
+
+  function getFiltros() {
+    return {
+      entidades: getEntidadesSelecionadas().join(','),
+      data_ini: document.getElementById('inpDataIni').value,
+      data_fim: document.getElementById('inpDataFim').value,
+    };
+  }
+
+  // =================================================================
+  // ATUALIZA TODOS OS GRÁFICOS E KPIs
+  // =================================================================
+  async function aplicarFiltros() {
+    const f = getFiltros();
+    const params = new URLSearchParams();
+    if (f.entidades) params.set('entidades', f.entidades);
+    if (f.data_ini) params.set('data_ini', f.data_ini);
+    if (f.data_fim) params.set('data_fim', f.data_fim);
+
+    // Resumo
+    const pResumo = new URLSearchParams();
+    if (f.entidades) pResumo.set('entidades', f.entidades);
+    if (f.data_ini) pResumo.set('data_ini', f.data_ini);
+    if (f.data_fim) pResumo.set('data_fim', f.data_fim);
+    fetch('/api/analise/resumo?' + pResumo).then(r => r.json()).then(d => {
+      document.getElementById('kpiTotal').textContent = d.total_kwh.toFixed(2);
+      document.getElementById('kpiCusto').textContent = d.custo_total.toFixed(2);
+      document.getElementById('kpiPreco').textContent = d.preco_kwh.toFixed(2);
+      document.getElementById('kpiCustoDia').textContent = d.dias > 0 ? (d.custo_total / d.dias).toFixed(2) : '0.00';
+      document.getElementById('kpiMax').textContent = d.max_kwh.toFixed(2);
+      document.getElementById('kpiMin').textContent = d.min_kwh.toFixed(2);
+      document.getElementById('kpiRegistros').textContent = d.total_registros;
+      document.getElementById('kpiDias').textContent = d.dias;
+    });
+
+    // Por entidade (bar chart)
+    const pEntidade = new URLSearchParams();
+    if (f.entidades) pEntidade.set('entidades', f.entidades);
+    if (f.data_ini) pEntidade.set('data_ini', f.data_ini);
+    if (f.data_fim) pEntidade.set('data_fim', f.data_fim);
+    fetch('/api/analise/por-entidade?' + pEntidade).then(r => r.json()).then(d => {
+      chartEntidade.data.labels = d.entidades.map(e => e.nome);
+      chartEntidade.data.datasets[0].data = d.entidades.map(e => e.total);
+      chartEntidade.data.datasets[0].backgroundColor = d.entidades.map((_, i) => colors[i % colors.length]);
+      chartEntidade.update();
+    });
+
+    // Por tempo (line chart) — consumo + custo
+    fetch('/api/analise/por-tempo?' + params).then(r => r.json()).then(d => {
+      chartTempo.data.labels = d.dias;
+      chartTempo.data.datasets[0].data = d.valores;
+      chartTempo.data.datasets[1].data = d.custo;
+      chartTempo.update();
+    });
+
+    // Por hora
+    fetch('/api/analise/por-hora?' + params).then(r => r.json()).then(d => {
+      chartHora.data.labels = d.horas.map(h => h + 'h');
+      chartHora.data.datasets[0].data = d.medias;
+      chartHora.update();
+    });
+  }
+
+  // =================================================================
+  // INICIALIZAÇÃO
+  // =================================================================
+  aplicarFiltros();
+
+  // Auto-refresh a cada 30s
+  setInterval(aplicarFiltros, 30000);
+</script>
+</body>
+</html>

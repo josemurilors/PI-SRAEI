@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRAEI — Configuração do Desenvolvedor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3e;
+      --accent:    #4f8ef7;
+      --accent2:   #f7c94f;
+      --accent3:   #4ff7a0;
+      --danger:    #f7604f;
+      --text:      #e2e8f0;
+      --muted:     #8892a4;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header .brand { display: flex; align-items: center; gap: 12px; }
+    header .brand svg { width: 36px; height: 36px; }
+    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
+    header p  { font-size: .75rem; color: var(--muted); }
+
+    main { padding: 28px 32px; max-width: 900px; margin: 0 auto; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: .82rem;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: var(--border); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { opacity: .85; }
+    .btn.danger  { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .btn.danger:hover { opacity: .85; }
+    .btn.success { background: var(--accent3); border-color: var(--accent3); color: #000; }
+    .btn.success:hover { opacity: .85; }
+
+    .badge {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: .5px;
+    }
+    .badge.on  { background: var(--accent3); color: #000; }
+    .badge.off { background: var(--danger); color: #fff; }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .status-row label { font-size: .85rem; color: var(--muted); min-width: 140px; }
+    .status-row .value { font-size: .95rem; font-weight: 600; }
+
+    .sim-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sim-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .sim-dot.active   { background: var(--accent3); box-shadow: 0 0 8px var(--accent3); }
+    .sim-dot.inactive { background: var(--danger); }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    .nav-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .inline-code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .8rem;
+      color: var(--accent2);
+    }
+
+    .desc {
+      font-size: .82rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="17" stroke="#4f8ef7" stroke-width="2"/>
+      <path d="M18 8 L14 20 H18 L16 28 L24 16 H19 L22 8 Z" fill="#4f8ef7"/>
+    </svg>
+    <div>
+      <h1>SRAEI — Configuração do Desenvolvedor</h1>
+      <p>Ferramentas de simulação e diagnóstico &nbsp;|&nbsp; UNIVESP — Grupo 14</p>
+    </div>
+  </div>
+  <div class="nav-bar">
+    <a href="/" class="btn">&larr; Dashboard</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Card: Simulação ── -->
+  <div class="card">
+    <h2>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Modo Simulação
+    </h2>
+
+    <div class="status-row">
+      <label>Estado</label>
+      <div class="sim-indicator">
+        <span class="sim-dot" id="simDot"></span>
+        <span class="value" id="simStatusText">—</span>
+      </div>
+      <span class="badge off" id="simBadge">DESLIGADO</span>
+    </div>
+
+    <div class="status-row">
+      <label>Passo atual</label>
+      <span class="value"><span class="inline-code" id="simStep">0</span></span>
+    </div>
+
+    <div class="status-row">
+      <label>Corrente gerada</label>
+      <span class="value"><span class="inline-code" id="simCorrente">0.000</span> A</span>
+    </div>
+
+    <div class="status-row">
+      <label>Parâmetros</label>
+      <span class="value">
+        Offset <span class="inline-code">8.0 A</span> &nbsp;|&nbsp;
+        Amplitude <span class="inline-code">6.0 A</span> &nbsp;|&nbsp;
+        Frequência <span class="inline-code">0.05 Hz</span> &nbsp;|&nbsp;
+        Tensão <span class="inline-code">127 V</span>
+      </span>
+    </div>
+
+    <hr />
+
+    <button class="btn success" id="btnSimToggle">Ativar Simulação</button>
+
+    <div class="desc">
+      Quando ativado, o backend gera dados sintéticos de corrente seguindo uma onda senoidal:
+      <span class="inline-code">I(t) = 8.0 + 6.0 &times; sin(2&pi; &times; 0.05 &times; t)</span>.
+      A simulação insere leituras no banco a cada 1 segundo, simulando o comportamento do ESP32.
+      Desative para voltar a usar dados reais do sensor.
+    </div>
+  </div>
+
+  <!-- ── Card: Informações do Sistema ── -->
+  <div class="card">
+    <h2>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      Informações do Sistema
+    </h2>
+
+    <div class="status-row">
+      <label>Backend</label>
+      <span class="value">Flask &mdash; Python 3</span>
+    </div>
+    <div class="status-row">
+      <label>Banco de dados</label>
+      <span class="value">SQLite &mdash; <span class="inline-code">sraei.db</span></span>
+    </div>
+    <div class="status-row">
+      <label>Limite de leituras</label>
+      <span class="value"><span class="inline-code">200</span> registros</span>
+    </div>
+    <div class="status-row">
+      <label>Firmware</label>
+      <span class="value">ESP32 + SCT-013-000</span>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // =================================================================
+  // ESTADO
+  // =================================================================
+  let simEnabled = false;
+
+  // =================================================================
+  // ATUALIZA INTERFACE
+  // =================================================================
+  function atualizarUI(data) {
+    const dot       = document.getElementById('simDot');
+    const text      = document.getElementById('simStatusText');
+    const badge     = document.getElementById('simBadge');
+    const step      = document.getElementById('simStep');
+    const corrente  = document.getElementById('simCorrente');
+    const btn       = document.getElementById('btnSimToggle');
+
+    simEnabled = data.enabled;
+
+    if (data.enabled) {
+      dot.className = 'sim-dot active';
+      text.textContent = 'Simulação ativa';
+      badge.textContent = 'LIGADO';
+      badge.className = 'badge on';
+      btn.textContent = 'Desativar Simulação';
+      btn.className = 'btn danger';
+    } else {
+      dot.className = 'sim-dot inactive';
+      text.textContent = 'Simulação desligada';
+      badge.textContent = 'DESLIGADO';
+      badge.className = 'badge off';
+      btn.textContent = 'Ativar Simulação';
+      btn.className = 'btn success';
+    }
+
+    step.textContent = data.step;
+    corrente.textContent = data.corrente_atual.toFixed(3);
+  }
+
+  // =================================================================
+  // BUSCA STATUS DA SIMULAÇÃO
+  // =================================================================
+  async function fetchStatus() {
+    try {
+      const resp = await fetch('/api/simulation');
+      const data = await resp.json();
+      atualizarUI(data);
+    } catch (e) {
+      console.error('Erro ao buscar status da simulação:', e);
+    }
+  }
+
+  // =================================================================
+  // ALTERNA SIMULAÇÃO
+  // =================================================================
+  document.getElementById('btnSimToggle').addEventListener('click', async () => {
+    const novoEstado = !simEnabled;
+    try {
+      const resp = await fetch('/api/simulation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: novoEstado }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        setTimeout(fetchStatus, 500);
+      }
+    } catch (e) {
+      console.error('Erro ao alternar simulação:', e);
+    }
+  });
+
+  // =================================================================
+  // POLLING AUTOMÁTICO
+  // =================================================================
+  fetchStatus();
+  setInterval(fetchStatus, 2000);
+</script>
+</body>
+</html>

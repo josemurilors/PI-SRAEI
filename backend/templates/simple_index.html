@@ -6,8 +6,14 @@
   <title>SRAEI — Sistema Residencial de Análise Energética Inteligente</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    /*
+     * ================================================================
+     * CSS — TEMA ESCURO PROFISSIONAL
+     * ================================================================
+     */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Paleta de cores */
     :root {
       --bg:        #0f1117;
       --surface:   #1a1d27;
@@ -69,7 +75,7 @@
     /* ── Layout ── */
     main { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
 
-    /* ── KPI Cards ── */
+    /* ── Cards de indicadores (KPIs) ── */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -84,6 +90,7 @@
       position: relative;
       overflow: hidden;
     }
+    /* Barra colorida na lateral esquerda */
     .kpi::before {
       content: '';
       position: absolute;
@@ -109,7 +116,7 @@
     .kpi.red    .value { color: var(--danger); }
     .kpi .unit  { font-size: .8rem; color: var(--muted); }
 
-    /* ── Chart ── */
+    /* ── Card do gráfico ── */
     .chart-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -127,7 +134,7 @@
     }
     .chart-wrap { position: relative; height: 260px; }
 
-    /* ── Controls ── */
+    /* ── Barra de controles ── */
     .controls {
       display: flex;
       gap: 10px;
@@ -161,6 +168,7 @@
       cursor: pointer;
     }
 
+    /* ── Input de preço ── */
     .price-box {
       display: flex;
       align-items: center;
@@ -201,6 +209,9 @@
 </head>
 <body>
 
+<!-- ================================================================ -->
+<!-- HEADER                                                           -->
+<!-- ================================================================ -->
 <header>
   <div class="brand">
     <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -212,12 +223,19 @@
       <p><span class="status-dot"></span>Monitoramento em tempo real &nbsp;|&nbsp; UNIVESP — Grupo 14 &nbsp;|&nbsp; DRP04-PI em Computação V</p>
     </div>
   </div>
-  <span class="badge">ESP32 · SCT-013-000 · Flask</span>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="badge">ESP32 · SCT-013-000 · Flask</span>
+    <a href="/analise" class="btn" style="font-size:.75rem;padding:5px 12px;text-decoration:none">📊 Análise</a>
+    <a href="/dev-config" class="btn" style="font-size:.75rem;padding:5px 12px;text-decoration:none">⚙️ Dev</a>
+  </div>
 </header>
 
+<!-- ================================================================ -->
+<!-- CONTEÚDO PRINCIPAL                                               -->
+<!-- ================================================================ -->
 <main>
 
-  <!-- Controls -->
+  <!-- ── Barra de controle (play/pause, reset, tensão, intervalo, preço) ── -->
   <div class="controls">
     <button class="btn primary" id="btnToggle">Pausar</button>
     <button class="btn danger"  id="btnReset">Zerar Energia</button>
@@ -240,7 +258,7 @@
     </div>
   </div>
 
-  <!-- KPIs -->
+  <!-- ── Indicadores (KPIs) ── -->
   <div class="kpi-grid">
     <div class="kpi blue">
       <label>Corrente RMS</label>
@@ -264,7 +282,7 @@
     </div>
   </div>
 
-  <!-- Chart -->
+  <!-- ── Gráfico de corrente ao longo do tempo ── -->
   <div class="chart-card">
     <h2>Corrente RMS — histórico (últimas 50 leituras)</h2>
     <div class="chart-wrap">
@@ -274,28 +292,42 @@
 
 </main>
 
+<!-- ================================================================ -->
+<!-- FOOTER                                                           -->
+<!-- ================================================================ -->
 <footer>
-  SRAEI &mdash; UNIVESP Grupo 14 &mdash; DRP04 Projeto Integrador em Computação V &mdash; Backend em Flask + SQLite com simulação do <code>leitorcorrente-esp32.ino</code>
+  SRAEI &mdash; UNIVESP Grupo 14 &mdash; DRP04 Projeto Integrador em Computação V &mdash; Backend em Flask + SQLite com dados do ESP32
 </footer>
 
+<!-- ================================================================ -->
+<!-- JAVASCRIPT — LÓGICA DO DASHBOARD                                 -->
+<!-- ================================================================ -->
 <script>
-  const TENSAO_REFERENCIA  = 3.3;
-  const RESOLUCAO_ADC      = 4095;
-  const RESISTOR_BURDEN    = 33.0;
-  const RELACAO_ESPIRAS    = 2000.0;
-  const OFFSET_ADC         = TENSAO_REFERENCIA / 2.0;
+  // =================================================================
+  // CONSTANTES DO SENSOR (usadas para simulação local, se necessário)
+  // =================================================================
+  const TENSAO_REFERENCIA = 3.3;
+  const RESOLUCAO_ADC     = 4095;
+  const RESISTOR_BURDEN   = 33.0;
+  const RELACAO_ESPIRAS   = 2000.0;
+  const OFFSET_ADC        = TENSAO_REFERENCIA / 2.0;
 
-  let tensaoRede    = 127.0;
-  let intervalo     = 1000;
-  let running       = true;
-  let timer         = null;
-  let pricePerKwh   = 0.85;
+  // =================================================================
+  // ESTADO GLOBAL
+  // =================================================================
+  let tensaoRede  = 127.0;   // Tensão da rede (127V ou 220V)
+  let intervalo   = 1000;    // Intervalo de polling (ms)
+  let running     = true;    // true = atualiza automaticamente
+  let timer       = null;
+  let pricePerKwh = 0.85;
 
-  const MAX_PONTOS  = 50;
-  const labels      = [];
-  const dadosCorrente = [];
+  const MAX_PONTOS     = 50;  // Máximo de pontos no gráfico
+  const labels         = [];  // Rótulos do eixo X (tempo decorrido)
+  const dadosCorrente  = [];  // Valores do eixo Y (corrente em A)
 
-  // ── Chart.js — linha ──
+  // =================================================================
+  // INICIALIZAÇÃO DO GRÁFICO (Chart.js)
+  // =================================================================
   const ctxLine = document.getElementById('chartLine').getContext('2d');
   const chartLine = new Chart(ctxLine, {
     type: 'line',
@@ -306,37 +338,51 @@
         data: dadosCorrente,
         borderColor: '#4f8ef7',
         backgroundColor: 'rgba(79,142,247,.08)',
-        tension: .4,
-        pointRadius: 2,
-        fill: true,
+        tension: .4,         // Suaviza as curvas
+        pointRadius: 2,      // Tamanho dos pontos
+        fill: true,          // Preenchimento abaixo da linha
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 300 },
-      plugins: { legend: { labels: { color: '#8892a4', font: { size: 11 } } } },
+      plugins: {
+        legend: { labels: { color: '#8892a4', font: { size: 11 } } },
+      },
       scales: {
-        x:  { ticks: { color: '#8892a4', maxTicksLimit: 10, font: { size: 10 } }, grid: { color: '#2a2d3e' } },
-        y:  { ticks: { color: '#4f8ef7', font: { size: 10 } }, grid: { color: '#2a2d3e' }, beginAtZero: true },
+        x: {
+          ticks: { color: '#8892a4', maxTicksLimit: 10, font: { size: 10 } },
+          grid:  { color: '#2a2d3e' },
+        },
+        y: {
+          ticks: { color: '#4f8ef7', font: { size: 10 } },
+          grid:  { color: '#2a2d3e' },
+          beginAtZero: true,
+        },
       },
     },
   });
 
-  // ── Fetch data from Flask API ──
+  // =================================================================
+  // FUNÇÃO: Busca dados da API Flask e atualiza a interface
+  // =================================================================
   async function fetchData() {
     try {
       const resp = await fetch('/api/data');
       const data = await resp.json();
+
+      // Atualiza o preço exibido no campo
       pricePerKwh = data.price_per_kwh;
       document.getElementById('inpPrice').value = pricePerKwh.toFixed(2);
 
+      // Atualiza os KPIs
       document.getElementById('kpiCorrente').textContent = data.corrente.toFixed(3);
       document.getElementById('kpiPotencia').textContent = data.potencia.toFixed(2);
       document.getElementById('kpiEnergia').textContent  = data.energia.toFixed(6);
       document.getElementById('kpiCusto').textContent    = data.custo.toFixed(4);
 
-      // Update chart
+      // Atualiza o gráfico com o histórico
       labels.length = 0;
       dadosCorrente.length = 0;
       if (data.chart_labels && data.chart_data) {
@@ -351,15 +397,23 @@
     }
   }
 
+  // =================================================================
+  // TIMER — Polling automático
+  // =================================================================
   function startTimer() {
     if (timer) clearInterval(timer);
     timer = setInterval(fetchData, intervalo);
   }
 
+  // Inicia o polling automático
   startTimer();
   fetchData();
 
-  // ── Controls ──
+  // =================================================================
+  // EVENTOS — CONTROLES
+  // =================================================================
+
+  // Botão Play / Pause
   document.getElementById('btnToggle').addEventListener('click', () => {
     running = !running;
     const btn = document.getElementById('btnToggle');
@@ -374,6 +428,7 @@
     }
   });
 
+  // Botão Zerar Energia (apaga todo o histórico)
   document.getElementById('btnReset').addEventListener('click', async () => {
     await fetch('/api/reset', { method: 'POST' });
     labels.length = 0;
@@ -381,22 +436,25 @@
     chartLine.update();
   });
 
+  // Seletor de tensão da rede
   document.getElementById('selTensao').addEventListener('change', e => {
     tensaoRede = parseFloat(e.target.value);
   });
 
+  // Seletor de intervalo de atualização
   document.getElementById('selIntervalo').addEventListener('change', e => {
     intervalo = parseInt(e.target.value);
     if (running) startTimer();
   });
 
+  // Botão Salvar preço do kWh
   document.getElementById('btnPrice').addEventListener('click', async () => {
     const val = parseFloat(document.getElementById('inpPrice').value);
     if (isNaN(val) || val < 0) { alert('Valor inválido'); return; }
     await fetch('/api/price', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ price: val })
+      body: JSON.stringify({ price: val }),
     });
     alert('Preço atualizado para R$ ' + val.toFixed(2) + '/kWh');
   });

@@ -64,16 +64,6 @@ const float TENSAO_REDE        = 127.0;   // Ajuste para 220.0 se necessário
 const float RELACAO_ESPIRAS     = 2000.0;  // 100A / 0.05A
 ```
 
-### Modo simulação
-
-O firmware possui um modo de simulação que dispensa o sensor físico:
-
-```cpp
-#define MODO_SIMULACAO 1  // 1 = simulação, 0 = sensor real
-```
-
-Em modo simulação, a corrente varia senoidalmente entre ~2A e ~14A, simulando carga residencial típica.
-
 ---
 
 ## Funcionamento
@@ -255,7 +245,7 @@ POST /api/esp32 - 200 OK
 ```
 
 #### No Dashboard Web (`http://SEU_IP:5000`):
-O site exibirá automaticamente os dados reais do ESP32 (sem simulação).
+O site exibirá automaticamente os dados reais do ESP32.
 
 ### 6. Funcionamento
 
@@ -264,10 +254,8 @@ O site exibirá automaticamente os dados reais do ESP32 (sem simulação).
                                                                           ↓
                                                                      [SQLite]
                                                                           ↓
-                                                                  [Dashboard Web]
+                                                                   [Dashboard Web]
 ```
-
-O backend detecta automaticamente se há dados do ESP32 no banco. Se houver, exibe dados reais; senão, usa simulação Python.
 
 ---
 
@@ -279,9 +267,8 @@ O projeto conta com um backend em **Flask + SQLite** que recebe dados do ESP32 v
 
 ```
 [ESP32 + SCT-013-000] ──WiFi──→ [Flask API /api/esp32] → [SQLite] → [Frontend Web]
-                                      ↑
-                              (simulação Python se sem ESP32)
 ```
+
 
 O ESP32 envia os dados via HTTP POST para o endpoint `/api/esp32`. O backend armazena no SQLite e o frontend consome via `/api/data`.
 
@@ -322,88 +309,17 @@ http://localhost:5000
 
 > O Flask serve o template `backend/templates/simple_index.html` automaticamente.
 
-#### 3. (Opcional) Simulação sem ESP32
-
-Se não tiver o hardware montado, o backend usa simulação Python automaticamente. Basta rodar o Flask e acessar o site.
-
 ### Tecnologias
 
 | Tecnologia | Uso |
 |---|---|
 | ESP32 + WiFi | Coleta de dados e envio via HTTP |
 | SCT-013-000 | Sensor de corrente não invasivo (100A) |
-| Python 3 | Lógica de simulação (fallback) e API backend |
+| Python 3 | API backend |
 | Flask | Framework web leve para servir API e templates |
 | SQLite | Armazenamento local das leituras (últimas 200) |
 | HTML5 / CSS3 | Estrutura e estilo do dashboard (tema dark) |
 | JavaScript (ES6+) | Consumo da API e atualização em tempo real |
-| [Chart.js](https://www.chartjs.org/) (CDN) | Gráfico de linha histórico |
-
-> A simulação no Python replica a função `lerCorrenteRMS()`: corrente senoidal entre ~2A e ~14A com período de 20s, cálculo de potência (`I × V_rede`) e acúmulo de energia em kWh.
-
----
-
-## Dashboard Web
-
-O projeto conta com um backend em **Flask + SQLite** que simula o comportamento do firmware ESP32, servindo os dados via API REST para um frontend web simplificado.
-
-### Arquitetura
-
-```
-[ESP32 / Simulação Python] → [Flask API] → [SQLite] → [Frontend Web]
-```
-
-A simulação da função `lerCorrenteRMS()` roda em um thread em background no Flask, lendo/gerando dados idênticos ao firmware e armazenando leituras no SQLite.
-
-### Funcionalidades do Site (Simplificado)
-
-- Indicadores em tempo real: **Corrente RMS**, **Potência**, **Energia Acumulada**, **Custo Estimado**
-- Gráfico de linha com histórico das últimas 50 leituras de corrente
-- Controles: pausar/retomar, zerar energia, alterar tensão da rede (127V/220V), intervalo de leitura
-- **Campo para alterar o valor do kWh** (preço da energia em R$)
-
-> Seções removidas no layout simplificado: Log Serial, Distribuição de Potência, Hardware, Fórmulas, Projeto, Objetivos do Projeto, Exploratórios, Descritivos, Explicativos.
-
-### Como rodar
-
-#### 1. Backend (Flask + SQLite)
-
-Pré-requisitos: Python 3.7+
-
-```bash
-cd backend
-
-# Instalar dependências
-pip install flask
-
-# Rodar a aplicação
-python app.py
-```
-
-O backend ficará disponível em `http://localhost:5000`.
-
-#### 2. Frontend
-
-Com o backend rodando, acesse no navegador:
-
-```
-http://localhost:5000
-```
-
-> O Flask serve o template `backend/templates/simple_index.html` automaticamente.
-
-### Tecnologias
-
-| Tecnologia | Uso |
-|---|---|
-| Python 3 | Lógica de simulação e API backend |
-| Flask | Framework web leve para servir API e templates |
-| SQLite | Armazenamento local das leituras (últimas 200) |
-| HTML5 / CSS3 | Estrutura e estilo do dashboard (tema dark) |
-| JavaScript (ES6+) | Consumo da API e atualização em tempo real |
-| [Chart.js](https://www.chartjs.org/) (CDN) | Gráfico de linha histórico |
-
-> A simulação no Python replica a função `lerCorrenteRMS()`: corrente senoidal entre ~2A e ~14A com período de 20s, cálculo de potência (`I × V_rede`) e acúmulo de energia em kWh.
 
 ---
 
