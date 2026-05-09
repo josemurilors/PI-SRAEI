@@ -177,8 +177,13 @@ O circuito foi projetado para garantir leituras precisas e seguras do sensor de 
 3. **Filtragem com Capacitor**: O capacitor de 10µF conectado entre o ponto de bias e GND filtra ruídos e estabiliza a tensão de referência, melhorando a qualidade da leitura do sinal.
 
 4. **Conexão do Sensor**: O sensor SCT-013-000 é conectado entre o ponto de bias (1,65V) e o resistor de proteção. O sinal do sensor é então lido pelo ESP32 através do pino D34.
+### 5. Fotos do protótipo
 
-### 5. Configurar o Firmware WiFi
+<img width="1200" height="1600" alt="image" src="https://github.com/user-attachments/assets/fb91fe69-d9b4-4762-be7a-0a61557e96e1" />
+
+
+
+### 6. Configurar o Firmware WiFi
 
 Edite o arquivo `arduino/leitorcorrente-esp32-wifi.ino` e altere:
 
